@@ -3,7 +3,7 @@ GENES <- c("U","D","L","R")
 ELITISM_FACTOR <- 10
 MATING_PERCENT <- 50
 POPULATION_SIZE <- 100
-NUM_OF_STEPS <- 9
+NUM_OF_STEPS <- 8
 
 
 printMaze <- function(maze, rows, cols) {
@@ -49,19 +49,28 @@ moveRight <- function(position, rows, cols) {
 }
 
 simulateSolution <- function(maze, solution, rows, cols) {
-  print(solution)
   # Update this function to serve as a fitness funcition
   # The simplest example is shown here: return 1 if the solution found the exit and 0 if it did not
   currentPosition <- grep('s', maze)
-  fitness <- 0
+  seeking <- grep('e', maze)
+  seekingY <- (seeking %/% 5) + 1
+  if (seeking %% 5 == 0){
+    seekingY <- seeking %/% 5
+  }
+  seekingX <- seeking %% 5
+  if (seekingX == 0){
+    seekingX <- 5
+  }
+  multiplier = 1
+  fitness <- 10
   for (move in solution) {
     oldPosition <- currentPosition
     if (move == 'U') {
       currentPosition <- moveUp(currentPosition, rows, cols)
     } else if (move == 'D') {
-      currentPosition <- moveDown(currentPosition, rows, cols)       
+      currentPosition <- moveDown(currentPosition, rows, cols)
     } else if (move == 'L') {
-      currentPosition <- moveLeft(currentPosition, rows, cols)            
+      currentPosition <- moveLeft(currentPosition, rows, cols)
     } else if (move == 'R') {
       currentPosition <- moveRight(currentPosition, rows, cols)
     } else {
@@ -74,12 +83,24 @@ simulateSolution <- function(maze, solution, rows, cols) {
     } else if (currentPosition == oldPosition){
       fitness <- fitness + 10
     }
+    currentY <- (currentPosition %/% 5)+1
+    if (currentPosition %% 5 == 0){
+      currentY <- currentPosition %% 5
+    }
+    currentX <- currentPosition %% 5
+    if (currentX == 0){
+      currentX <- 5
+    }
+    euclidean <- ((currentX-seekingX)^2 + (currentY-seekingY)^2)*multiplier
     if (maze[currentPosition] == 'e') {
       return(0)
     }
+    multiplier <- multiplier + 1
   }
   return(fitness)
 }
+
+trial = c("L","L","U","U","R","R","R","R")
 
 
 geneticAlgorithm <- function(maze, rows, cols) {
@@ -94,12 +115,13 @@ geneticAlgorithm <- function(maze, rows, cols) {
       fitness <- simulateSolution(maze1,initial_population[[i]],rows1,cols1)
       fitness_array <- c(fitness_array, fitness)
     }
-    ordered_fitness = sort(fitness)
+    ordered_fitness = sort(fitness_array)
     indices = order(fitness_array)
     ordered_list <- vector("list", POPULATION_SIZE)
     for (j in 1:POPULATION_SIZE){
       ordered_list[[j]] <- initial_population[[indices[j]]]
     }
+    print(ordered_list[[1]])
     if (ordered_fitness[1] == 0){
       solved <- TRUE
       break
@@ -107,19 +129,18 @@ geneticAlgorithm <- function(maze, rows, cols) {
     
     new_population <- vector("list", POPULATION_SIZE)
     MATING_FACTOR <- 100 - ELITISM_FACTOR
-    s <- (MATING_FACTOR * POPULATION_SIZE) %/% 100
-    
+    s <- 50
     for (st1 in 1:s){
       real_size <- (MATING_PERCENT*POPULATION_SIZE) %/% 100
       
-      #initialise 2 random parents
+      # initialise 2 random parents
       parent1 <- ordered_list[[sample(1:real_size, 1)]]
       parent2 <- ordered_list[[sample(1:real_size, 1)]]
       
-      child <- muteParents(parent1,parent2)
-      new_population[[st2]] <- child
+      child <- mateParents(parent1,parent2)
+      new_population[[st1]] <- child
     }
-    for (st2 in s+1:POPULATION_SIZE){
+    for (st2 in s+1:(POPULATION_SIZE-s)){
       new_population[[st2]] <- ordered_list[[st2]]
     }
     initial_population <- new_population
