@@ -49,6 +49,7 @@ moveRight <- function(position, rows, cols) {
 }
 
 simulateSolution <- function(maze, solution, rows, cols) {
+  print(solution)
   # Update this function to serve as a fitness funcition
   # The simplest example is shown here: return 1 if the solution found the exit and 0 if it did not
   currentPosition <- grep('s', maze)
@@ -70,11 +71,12 @@ simulateSolution <- function(maze, solution, rows, cols) {
     if (maze[currentPosition] == '#') {
       currentPosition <- oldPosition
       fitness <- fitness + 10
+    } else if (currentPosition == oldPosition){
+      fitness <- fitness + 10
     }
     if (maze[currentPosition] == 'e') {
       return(0)
     }
-    fitness <- fitness + 5
   }
   return(fitness)
 }
@@ -84,20 +86,64 @@ geneticAlgorithm <- function(maze, rows, cols) {
   # Implement the genetic algorithm in this function
   # You should add additional parameters to the function as needed
   #Create initial population
-  for (i in POPULATION_SIZE){
-    genome <- createGenome()
+  solved <- FALSE
+  initial_population = createGenome()
+  while (isFALSE(solved)){
+    fitness_array <- c()
+    for (i in 1:POPULATION_SIZE){
+      fitness <- simulateSolution(maze1,initial_population[[i]],rows1,cols1)
+      fitness_array <- c(fitness_array, fitness)
+    }
+    ordered_fitness = sort(fitness)
+    indices = order(fitness_array)
+    ordered_list <- vector("list", POPULATION_SIZE)
+    for (j in 1:POPULATION_SIZE){
+      ordered_list[[j]] <- initial_population[[indices[j]]]
+    }
+    if (ordered_fitness[1] == 0){
+      solved <- TRUE
+      break
+    }
+    
+    new_population <- vector("list", POPULATION_SIZE)
+    MATING_FACTOR <- 100 - ELITISM_FACTOR
+    s <- (MATING_FACTOR * POPULATION_SIZE) %/% 100
+    
+    for (st1 in 1:s){
+      real_size <- (MATING_PERCENT*POPULATION_SIZE) %/% 100
+      
+      #initialise 2 random parents
+      parent1 <- ordered_list[[sample(1:real_size, 1)]]
+      parent2 <- ordered_list[[sample(1:real_size, 1)]]
+      
+      child <- muteParents(parent1,parent2)
+      new_population[[st2]] <- child
+    }
+    for (st2 in s+1:POPULATION_SIZE){
+      new_population[[st2]] <- ordered_list[[st2]]
+    }
+    initial_population <- new_population
   }
-  for _ in range(POPULATION_SIZE):
-    # generate new chromosome
-    genome = Individual.create_genome()
-    # generate new individual and add it to the population array
-    new_individual = Individual(genome)
-    population.append(new_individual)
+}
+
+mateParents <- function(vector1,vector2){
+  baby <- c()
+  for (i in 1:NUM_OF_STEPS){
+    probability <- runif(1, min = 0, max = 1)
+    if (probability < 0.45){
+      baby <- c(baby, vector1[i])
+    } else if (probability < 0.9){
+      baby <- c(baby, vector2[i])
+    } else {
+      baby <- c(baby, mutatedGene())
+    }
+  }
+  return(baby)
 }
 
 createGenome <- function(){
   genome_length <- NUM_OF_STEPS
-  l <- vector("list", genome_length)
+  l <- vector("list", POPULATION_SIZE)
   for (ii in 1:POPULATION_SIZE){
     one_genome <- c()
     for (i in 1:genome_length){
@@ -106,7 +152,7 @@ createGenome <- function(){
     }
     l[[ii]] <- one_genome
   }
-  print(l)
+  return(l)
 }
 
 mutatedGene <- function(){
